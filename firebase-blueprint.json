@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A product available in the store",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Product name" },
+        "description": { "type": "string", "description": "Product description" },
+        "price": { "type": "number", "description": "Product price" },
+        "category": { "type": "string", "description": "Product category" },
+        "images": { "type": "array", "items": { "type": "string" }, "description": "Product image URLs" },
+        "sizes": { "type": "array", "items": { "type": "string" }, "description": "Available sizes" },
+        "colors": { "type": "array", "items": { "type": "string" }, "description": "Available colors" },
+        "stock": { "type": "number", "description": "Current stock level" },
+        "isFeatured": { "type": "boolean", "description": "Whether the product is featured on homepage" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "price", "category", "stock"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "A product category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Category name" },
+        "slug": { "type": "string", "description": "Category slug" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID of the user who placed the order" },
+        "items": { "type": "array", "items": { "type": "object" }, "description": "List of ordered items" },
+        "totalAmount": { "type": "number", "description": "Total order amount" },
+        "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled"], "description": "Order status" },
+        "paymentMethod": { "type": "string", "enum": ["bkash", "nagad", "cod"], "description": "Payment method" },
+        "shippingAddress": { "type": "object", "description": "Shipping address details" },
+        "phone": { "type": "string", "description": "Contact phone number" },
+        "customerName": { "type": "string", "description": "Customer name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Order timestamp" }
+      },
+      "required": ["userId", "items", "totalAmount", "status", "paymentMethod", "shippingAddress", "phone", "customerName"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "description": "User's email" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "User's role" },
+        "phone": { "type": "string", "description": "User's phone number" },
+        "address": { "type": "string", "description": "User's default address" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "A discount coupon",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "description": "Coupon code" },
+        "discountType": { "type": "string", "enum": ["percentage", "fixed"], "description": "Type of discount" },
+        "discountValue": { "type": "number", "description": "Discount value" },
+        "expiryDate": { "type": "string", "format": "date-time", "description": "Coupon expiry date" }
+      },
+      "required": ["code", "discountType", "discountValue"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Store-wide settings",
+      "type": "object",
+      "properties": {
+        "deliveryChargeInsideDhaka": { "type": "number", "description": "Delivery charge for inside Dhaka" },
+        "deliveryChargeOutsideDhaka": { "type": "number", "description": "Delivery charge for outside Dhaka" }
+      }
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A customer review for a product",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "description": "ID of the reviewed product" },
+        "userId": { "type": "string", "description": "ID of the reviewer" },
+        "userName": { "type": "string", "description": "Name of the reviewer" },
+        "rating": { "type": "number", "description": "Star rating (1-5)" },
+        "comment": { "type": "string", "description": "Review text" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Review timestamp" }
+      },
+      "required": ["productId", "userId", "userName", "rating", "comment"]
+    }
+  },
+  "firestore": {
+    "products": { "schema": "Product", "description": "Collection of products" },
+    "categories": { "schema": "Category", "description": "Collection of product categories" },
+    "orders": { "schema": "Order", "description": "Collection of customer orders" },
+    "users": { "schema": "User", "description": "Collection of user profiles" },
+    "coupons": { "schema": "Coupon", "description": "Collection of discount coupons" },
+    "settings": { "schema": "Settings", "description": "Store settings" },
+    "reviews": { "schema": "Review", "description": "Collection of product reviews" }
+  }
+}
