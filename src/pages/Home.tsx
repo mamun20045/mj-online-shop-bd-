@@ -78,10 +78,10 @@ const Home: React.FC = () => {
                 Shop Now <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
               <Link
-                to="/products?category=Electronics"
+                to="/products?category=Electronics and Gadgets"
                 className="w-full sm:w-auto px-8 py-3 bg-white text-gray-900 font-bold rounded-lg hover:bg-gray-100 transition-colors"
               >
-                View Electronics
+                View Gadgets
               </Link>
             </div>
           </motion.div>
@@ -104,6 +104,33 @@ const Home: React.FC = () => {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Featured Products Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">Featured Products</h2>
+          <Link to="/products" className="text-orange-600 hover:text-orange-700 font-medium flex items-center">
+            View All <ArrowRight className="ml-1 h-4 w-4" />
+          </Link>
+        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="animate-pulse bg-gray-200 h-80 rounded-lg"></div>
+            ))}
+          </div>
+        ) : featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-gray-50 rounded-xl">
+            <p className="text-gray-500">No featured products found. Check back later!</p>
+          </div>
+        )}
       </section>
 
       {/* Categories Section */}
@@ -135,7 +162,7 @@ const Home: React.FC = () => {
               </Link>
             ))
           ) : (
-            ['Men', 'Women', 'Electronics', 'Accessories'].map((name) => (
+            ['Shoes', 'Bags', 'Jewelry', 'Watches', 'Electronics and Gadgets', 'Home and Kitchen'].map((name) => (
               <Link
                 key={name}
                 to={`/products?category=${name}`}
@@ -150,43 +177,16 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Products Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Featured Products</h2>
-          <Link to="/products" className="text-orange-600 hover:text-orange-700 font-medium flex items-center">
-            View All <ArrowRight className="ml-1 h-4 w-4" />
-          </Link>
-        </div>
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="animate-pulse bg-gray-200 h-80 rounded-lg"></div>
-            ))}
-          </div>
-        ) : featuredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-gray-50 rounded-xl">
-            <p className="text-gray-500">No featured products found. Check back later!</p>
-          </div>
-        )}
-      </section>
-
       {/* Promo Banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-orange-600 rounded-2xl overflow-hidden relative">
           <div className="grid md:grid-cols-2 items-center">
             <div className="p-8 md:p-12 text-white space-y-6">
               <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm font-medium">Limited Time Offer</span>
-              <h2 className="text-3xl md:text-5xl font-bold leading-tight">Get Up to 50% Off on Electronics</h2>
+              <h2 className="text-3xl md:text-5xl font-bold leading-tight">Get Up to 50% Off on Shoes & Bags</h2>
               <p className="text-orange-100 text-lg">Don't miss out on our biggest sale of the season. Shop now and save big!</p>
               <Link
-                to="/products?category=Electronics"
+                to="/products?category=Shoes"
                 className="inline-block px-8 py-3 bg-white text-orange-600 font-bold rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Shop Sale

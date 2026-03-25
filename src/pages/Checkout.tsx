@@ -38,6 +38,21 @@ const Checkout: React.FC = () => {
     setDeliveryCharge(formData.city === 'Dhaka' ? 60 : 120);
   }, [formData.city]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit for Base64 storage
+        toast.error('File is too large. Please upload an image smaller than 1MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, paymentScreenshot: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -47,8 +62,8 @@ const Checkout: React.FC = () => {
         toast.error('Transaction ID is required for mobile payment');
         return;
       }
-      if (!formData.paymentScreenshot.trim()) {
-        toast.error('Payment Screenshot URL is required for mobile payment');
+      if (!formData.paymentScreenshot) {
+        toast.error('Payment Screenshot is required for mobile payment');
         return;
       }
     }
@@ -213,7 +228,7 @@ const Checkout: React.FC = () => {
               <div className="mt-6 space-y-4">
                 <div className="p-4 bg-blue-50 text-blue-700 rounded-lg text-sm">
                   <p className="font-bold mb-1">Payment Instructions:</p>
-                  <p>Please complete the payment to our merchant number (01XXXXXXXXX) after placing the order. Then provide the Transaction ID and Screenshot URL below.</p>
+                  <p>Please complete the payment to our merchant number (01XXXXXXXXX) after placing the order. Then provide the Transaction ID and upload a Screenshot below.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -228,15 +243,25 @@ const Checkout: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Screenshot URL</label>
-                    <input
-                      type="url"
-                      required
-                      value={formData.paymentScreenshot}
-                      onChange={(e) => setFormData({ ...formData, paymentScreenshot: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                      placeholder="Paste screenshot link (e.g., Imgur)"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Screenshot</label>
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        required={!formData.paymentScreenshot}
+                        onChange={handleFileChange}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                      />
+                      {formData.paymentScreenshot && (
+                        <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+                          <img 
+                            src={formData.paymentScreenshot} 
+                            alt="Payment Preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

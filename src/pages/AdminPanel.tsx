@@ -136,7 +136,7 @@ const AdminProducts = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [formData, setFormData] = useState({
-    name: '', price: 0, category: 'Electronics', stock: 10, description: '', isFeatured: false, images: ['']
+    name: '', price: 0, category: 'Shoes', stock: 10, description: '', isFeatured: false, images: ['']
   });
 
   useEffect(() => {
@@ -193,7 +193,7 @@ const AdminProducts = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Products</h2>
         <button
-          onClick={() => { setIsAdding(true); setEditingProduct(null); setFormData({ name: '', price: 0, category: 'Electronics', stock: 10, description: '', isFeatured: false, images: ['https://picsum.photos/seed/product/400/400'] }); }}
+          onClick={() => { setIsAdding(true); setEditingProduct(null); setFormData({ name: '', price: 0, category: 'Shoes', stock: 10, description: '', isFeatured: false, images: ['https://picsum.photos/seed/product/400/400'] }); }}
           className="bg-orange-600 text-white px-4 py-2 rounded-lg font-bold flex items-center"
         >
           <Plus className="h-5 w-5 mr-2" /> Add Product
@@ -231,10 +231,12 @@ const AdminProducts = () => {
                 ))}
                 {categories.length === 0 && (
                   <>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Men">Men</option>
-                    <option value="Women">Women</option>
-                    <option value="Accessories">Accessories</option>
+                    <option value="Shoes">Shoes</option>
+                    <option value="Bags">Bags</option>
+                    <option value="Jewelry">Jewelry</option>
+                    <option value="Watches">Watches</option>
+                    <option value="Electronics and Gadgets">Electronics and Gadgets</option>
+                    <option value="Home and Kitchen">Home and Kitchen</option>
                   </>
                 )}
               </select>
