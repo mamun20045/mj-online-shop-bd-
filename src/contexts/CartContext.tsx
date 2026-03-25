@@ -6,9 +6,13 @@ interface CartContextType {
   addToCart: (product: Product, quantity: number, size?: string, color?: string) => void;
   removeFromCart: (productId: string, size?: string, color?: string) => void;
   updateQuantity: (productId: string, quantity: number, size?: string, color?: string) => void;
+  toggleSelection: (productId: string, size?: string, color?: string) => void;
   clearCart: () => void;
+  removeSelectedFromCart: () => void;
   cartTotal: number;
   itemCount: number;
+  selectedTotal: number;
+  selectedCount: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -16,7 +20,9 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>(() => {
     const savedCart = localStorage.getItem('cart');
-    return savedCart ? JSON.parse(savedCart) : [];
+    const parsedCart = savedCart ? JSON.parse(savedCart) : [];
+    // Ensure all items have a selected property
+    return parsedCart.map((item: CartItem) => ({ ...item, selected: item.selected ?? true }));
   });
 
   useEffect(() => {
@@ -35,7 +41,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return newCart;
       }
 
-      return [...prevCart, { ...product, quantity, selectedSize: size, selectedColor: color }];
+      return [...prevCart, { ...product, quantity, selectedSize: size, selectedColor: color, selected: true }];
     });
   };
 
@@ -54,13 +60,41 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  const toggleSelection = (productId: string, size?: string, color?: string) => {
+    setCart(prevCart => prevCart.map(item => {
+      if (item.id === productId && item.selectedSize === size && item.selectedColor === color) {
+        return { ...item, selected: !item.selected };
+      }
+      return item;
+    }));
+  };
+
   const clearCart = () => setCart([]);
+
+  const removeSelectedFromCart = () => {
+    setCart(prevCart => prevCart.filter(item => !item.selected));
+  };
 
   const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const itemCount = cart.reduce((count, item) => count + item.quantity, 0);
+  
+  const selectedTotal = cart.reduce((total, item) => item.selected ? total + item.price * item.quantity : total, 0);
+  const selectedCount = cart.reduce((count, item) => item.selected ? count + item.quantity : count, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, itemCount }}>
+    <CartContext.Provider value={{ 
+      cart, 
+      addToCart, 
+      removeFromCart, 
+      updateQuantity, 
+      toggleSelection,
+      clearCart, 
+      removeSelectedFromCart,
+      cartTotal, 
+      itemCount,
+      selectedTotal,
+      selectedCount
+    }}>
       {children}
     </CartContext.Provider>
   );

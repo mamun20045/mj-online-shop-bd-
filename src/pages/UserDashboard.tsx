@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Order } from '../types';
-import { Package, User, MapPin, Phone, Clock, ShoppingBag } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Package, User, MapPin, Phone, Clock, ShoppingBag, X, CreditCard, Truck } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const UserDashboard: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -112,7 +113,12 @@ const UserDashboard: React.FC = () => {
                         ))}
                       </div>
                       <div className="mt-6 flex justify-end">
-                        <button className="text-orange-600 text-sm font-bold hover:underline">View Details</button>
+                        <button 
+                          onClick={() => setSelectedOrder(order)}
+                          className="text-orange-600 text-sm font-bold hover:underline"
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -128,6 +134,150 @@ const UserDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Order Details Modal */}
+      <AnimatePresence>
+        {selectedOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50/50">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Order Details</h3>
+                  <p className="text-sm text-gray-500 font-mono">#{selectedOrder.id.toUpperCase()}</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-2 hover:bg-white rounded-full transition-colors text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-grow overflow-y-auto p-6 space-y-8">
+                {/* Status & Date */}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center text-gray-600">
+                    <Clock className="h-5 w-5 mr-2 text-orange-600" />
+                    <span className="text-sm">Placed on {new Date(selectedOrder.createdAt).toLocaleString()}</span>
+                  </div>
+                  <span className={`px-4 py-1.5 rounded-full text-sm font-bold uppercase ${getStatusColor(selectedOrder.status)}`}>
+                    {selectedOrder.status}
+                  </span>
+                </div>
+
+                {/* Customer & Shipping Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center">
+                      <User className="h-4 w-4 mr-2" /> Customer Info
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-xl space-y-2">
+                      <p className="font-bold text-gray-900">{selectedOrder.customerName}</p>
+                      <p className="text-sm text-gray-600 flex items-center">
+                        <Phone className="h-3 w-3 mr-2" /> {selectedOrder.phone}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center">
+                      <MapPin className="h-4 w-4 mr-2" /> Shipping Address
+                    </h4>
+                    <div className="bg-gray-50 p-4 rounded-xl space-y-1">
+                      <p className="text-sm font-bold text-gray-900">{selectedOrder.shippingAddress.fullName}</p>
+                      <p className="text-sm text-gray-600 leading-relaxed">{selectedOrder.shippingAddress.address}</p>
+                      <p className="text-sm text-gray-600">{selectedOrder.shippingAddress.city}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Info */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center">
+                    <CreditCard className="h-4 w-4 mr-2" /> Payment Details
+                  </h4>
+                  <div className="bg-gray-50 p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase font-bold">Method</p>
+                      <p className="font-bold text-gray-900 uppercase">{selectedOrder.paymentMethod}</p>
+                    </div>
+                    {selectedOrder.transactionId && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase font-bold">Transaction ID</p>
+                        <p className="font-mono text-sm text-gray-900">{selectedOrder.transactionId}</p>
+                      </div>
+                    )}
+                    {selectedOrder.paymentScreenshot && (
+                      <div className="w-full mt-2">
+                        <p className="text-xs text-gray-500 uppercase font-bold mb-2">Screenshot</p>
+                        <img 
+                          src={selectedOrder.paymentScreenshot} 
+                          alt="Payment Proof" 
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Items List */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center">
+                    <ShoppingBag className="h-4 w-4 mr-2" /> Items Ordered
+                  </h4>
+                  <div className="border border-gray-100 rounded-xl divide-y divide-gray-100">
+                    {selectedOrder.items.map((item, idx) => (
+                      <div key={idx} className="p-4 flex items-center gap-4">
+                        <img src={item.images[0]} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-gray-50" referrerPolicy="no-referrer" />
+                        <div className="flex-grow min-w-0">
+                          <p className="font-bold text-gray-900 truncate">{item.name}</p>
+                          <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                            <span>Qty: <span className="font-bold text-gray-700">{item.quantity}</span></span>
+                            {item.selectedSize && <span>Size: <span className="font-bold text-gray-700">{item.selectedSize}</span></span>}
+                            {item.selectedColor && <span>Color: <span className="font-bold text-gray-700">{item.selectedColor}</span></span>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-orange-600">৳{item.price * item.quantity}</p>
+                          <p className="text-[10px] text-gray-400">৳{item.price} each</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Order Note */}
+                {selectedOrder.orderNote && (
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Order Note</h4>
+                    <div className="bg-orange-50 p-4 rounded-xl text-sm text-orange-800 italic">
+                      "{selectedOrder.orderNote}"
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                <div className="flex items-center text-gray-500 text-sm">
+                  <Truck className="h-4 w-4 mr-2" /> Free Delivery
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 uppercase font-bold">Total Amount Paid</p>
+                  <p className="text-2xl font-black text-orange-600">৳{selectedOrder.totalAmount}</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -9,9 +9,11 @@ import { CreditCard, Truck, MapPin, Phone, User, CheckCircle2 } from 'lucide-rea
 import { motion } from 'motion/react';
 
 const Checkout: React.FC = () => {
-  const { cart, cartTotal, clearCart } = useCart();
+  const { cart, selectedTotal, removeSelectedFromCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const selectedItems = cart.filter(item => item.selected);
 
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -28,10 +30,10 @@ const Checkout: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (cart.length === 0) {
+    if (selectedItems.length === 0) {
       navigate('/cart');
     }
-  }, [cart, navigate]);
+  }, [selectedItems, navigate]);
 
   useEffect(() => {
     // Basic delivery charge logic
@@ -76,7 +78,7 @@ const Checkout: React.FC = () => {
     setLoading(true);
     try {
       // Sanitize cart items to remove undefined values and add single image field for admin
-      const sanitizedItems = cart.map(item => {
+      const sanitizedItems = selectedItems.map(item => {
         const itemCopy = { 
           ...item,
           image: item.images && item.images.length > 0 ? item.images[0] : null
@@ -94,7 +96,7 @@ const Checkout: React.FC = () => {
         customerName: formData.fullName,
         phone: formData.phone,
         items: sanitizedItems,
-        totalAmount: cartTotal + deliveryCharge,
+        totalAmount: selectedTotal + deliveryCharge,
         status: 'pending',
         paymentMethod: formData.paymentMethod,
         transactionId: formData.paymentMethod !== 'cod' ? formData.transactionId : null,
@@ -119,7 +121,7 @@ const Checkout: React.FC = () => {
       console.log('Placing order with data:', orderData);
       const docRef = await addDoc(collection(db, 'orders'), orderData);
       toast.success('Order placed successfully!');
-      clearCart();
+      removeSelectedFromCart();
       navigate(`/order-confirmation/${docRef.id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'orders');
@@ -302,7 +304,7 @@ const Checkout: React.FC = () => {
             <h2 className="text-xl font-bold text-gray-900 mb-6">Your Order</h2>
 
             <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
-              {cart.map((item) => (
+              {selectedItems.map((item) => (
                 <div key={`${item.id}-${item.selectedSize}`} className="flex justify-between text-sm">
                   <div className="flex-grow pr-4">
                     <p className="font-medium text-gray-900 truncate">{item.name}</p>
@@ -316,7 +318,7 @@ const Checkout: React.FC = () => {
             <div className="space-y-4 border-t border-gray-100 pt-6 mb-8">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>৳{cartTotal}</span>
+                <span>৳{selectedTotal}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Delivery Charge</span>
@@ -324,7 +326,7 @@ const Checkout: React.FC = () => {
               </div>
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-2">
                 <span>Total</span>
-                <span>৳{cartTotal + deliveryCharge}</span>
+                <span>৳{selectedTotal + deliveryCharge}</span>
               </div>
             </div>
 

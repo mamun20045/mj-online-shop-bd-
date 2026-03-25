@@ -5,7 +5,7 @@ import { Trash2, Minus, Plus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const Cart: React.FC = () => {
-  const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const { cart, removeFromCart, updateQuantity, toggleSelection, selectedTotal, selectedCount } = useCart();
   const navigate = useNavigate();
 
   if (cart.length === 0) {
@@ -37,30 +37,40 @@ const Cart: React.FC = () => {
             <motion.div
               layout
               key={`${item.id}-${item.selectedSize}-${item.selectedColor}`}
-              className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-6"
+              className={`bg-white p-4 rounded-xl shadow-sm border flex items-center gap-4 sm:gap-6 transition-colors ${item.selected ? 'border-orange-200 bg-orange-50/10' : 'border-gray-100'}`}
             >
-              <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+              {/* Checkbox */}
+              <div className="flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={item.selected}
+                  onChange={() => toggleSelection(item.id, item.selectedSize, item.selectedColor)}
+                  className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                />
+              </div>
+
+              <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
                 <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
 
               <div className="flex-grow min-w-0">
-                <Link to={`/product/${item.id}`} className="text-lg font-bold text-gray-900 hover:text-orange-600 truncate block">
+                <Link to={`/product/${item.id}`} className="text-base sm:text-lg font-bold text-gray-900 hover:text-orange-600 truncate block">
                   {item.name}
                 </Link>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs sm:text-sm text-gray-500">
                   {item.selectedSize && <span>Size: <span className="font-medium text-gray-700">{item.selectedSize}</span></span>}
                   {item.selectedColor && <span>Color: <span className="font-medium text-gray-700">{item.selectedColor}</span></span>}
-                  <span>Category: <span className="font-medium text-gray-700">{item.category}</span></span>
+                  <span className="hidden sm:inline">Category: <span className="font-medium text-gray-700">{item.category}</span></span>
                 </div>
                 <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center border border-gray-200 rounded-lg">
+                  <div className="flex items-center border border-gray-200 rounded-lg bg-white">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1, item.selectedSize, item.selectedColor)}
                       className="p-1 hover:bg-gray-50"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
-                    <span className="w-10 text-center font-bold">{item.quantity}</span>
+                    <span className="w-8 sm:w-10 text-center font-bold text-sm sm:text-base">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1, item.selectedSize, item.selectedColor)}
                       className="p-1 hover:bg-gray-50"
@@ -68,7 +78,7 @@ const Cart: React.FC = () => {
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <span className="text-lg font-bold text-orange-600">৳{item.price * item.quantity}</span>
+                  <span className="text-base sm:text-lg font-bold text-orange-600">৳{item.price * item.quantity}</span>
                 </div>
               </div>
 
@@ -89,8 +99,8 @@ const Cart: React.FC = () => {
 
             <div className="space-y-4 mb-8">
               <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span>৳{cartTotal}</span>
+                <span>Selected Items ({selectedCount})</span>
+                <span>৳{selectedTotal}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Delivery Charge</span>
@@ -98,13 +108,18 @@ const Cart: React.FC = () => {
               </div>
               <div className="border-t border-gray-100 pt-4 flex justify-between text-xl font-bold text-gray-900">
                 <span>Total</span>
-                <span>৳{cartTotal}</span>
+                <span>৳{selectedTotal}</span>
               </div>
             </div>
 
             <button
               onClick={() => navigate('/checkout')}
-              className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold hover:bg-orange-700 transition-colors flex items-center justify-center"
+              disabled={selectedCount === 0}
+              className={`w-full py-4 rounded-xl font-bold transition-colors flex items-center justify-center ${
+                selectedCount > 0 
+                ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
             >
               Proceed to Checkout <ArrowRight className="ml-2 h-5 w-5" />
             </button>
