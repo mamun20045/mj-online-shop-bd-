@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Product, Order, Category, Coupon, Settings } from '../types';
-import { LayoutDashboard, Package, ShoppingBag, Tag, Settings as SettingsIcon, Plus, Edit, Trash2, Check, X, Search } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Tag, Settings as SettingsIcon, Plus, Edit, Trash2, Check, X, Search, User, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AdminPanel: React.FC = () => {
@@ -64,14 +64,19 @@ const AdminPanel: React.FC = () => {
 import { seedDatabase } from '../seedData';
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState({ products: 0, orders: 0, revenue: 0 });
+  const [stats, setStats] = useState({ products: 0, orders: 0, revenue: 0, customers: 0 });
   const [isSeeding, setIsSeeding] = useState(false);
 
   const fetchStats = async () => {
-    const products = await getDocs(collection(db, 'products'));
-    const orders = await getDocs(collection(db, 'orders'));
-    const revenue = orders.docs.reduce((sum, doc) => sum + (doc.data().totalAmount || 0), 0);
-    setStats({ products: products.size, orders: orders.size, revenue });
+    try {
+      const products = await getDocs(collection(db, 'products'));
+      const orders = await getDocs(collection(db, 'orders'));
+      const users = await getDocs(collection(db, 'users'));
+      const revenue = orders.docs.reduce((sum, doc) => sum + (doc.data().totalAmount || 0), 0);
+      setStats({ products: products.size, orders: orders.size, revenue, customers: users.size });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'admin_stats');
+    }
   };
 
   useEffect(() => {
@@ -102,11 +107,12 @@ const AdminDashboard = () => {
           {isSeeding ? 'Seeding...' : 'Seed Demo Data'}
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
           { label: 'Total Products', value: stats.products, icon: ShoppingBag, color: 'bg-blue-500' },
           { label: 'Total Orders', value: stats.orders, icon: Package, color: 'bg-orange-500' },
           { label: 'Total Revenue', value: `৳${stats.revenue}`, icon: LayoutDashboard, color: 'bg-green-500' },
+          { label: 'Total Customers', value: stats.customers, icon: User, color: 'bg-purple-500' },
         ].map((stat, idx) => (
           <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center">
             <div className={`${stat.color} p-4 rounded-xl text-white mr-4`}>
@@ -135,12 +141,20 @@ const AdminProducts = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const snapshot = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
-      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      try {
+        const snapshot = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
+        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, 'products');
+      }
     };
     const fetchCategories = async () => {
-      const snapshot = await getDocs(collection(db, 'categories'));
-      setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
+      try {
+        const snapshot = await getDocs(collection(db, 'categories'));
+        setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, 'categories');
+      }
     };
     fetchProducts();
     fetchCategories();
@@ -303,19 +317,28 @@ const AdminProducts = () => {
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const snapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+      try {
+        const snapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, 'orders');
+      }
     };
     fetchOrders();
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
-    await updateDoc(doc(db, 'orders', id), { status });
-    setOrders(orders.map(o => o.id === id ? { ...o, status: status as any } : o));
-    toast.success('Order status updated');
+    try {
+      await updateDoc(doc(db, 'orders', id), { status });
+      setOrders(orders.map(o => o.id === id ? { ...o, status: status as any } : o));
+      toast.success('Order status updated');
+    } catch (error) {
+      toast.error('Error updating status');
+    }
   };
 
   return (
@@ -325,7 +348,7 @@ const AdminOrders = () => {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Order ID</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Order Details</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
@@ -335,7 +358,17 @@ const AdminOrders = () => {
           <tbody className="divide-y divide-gray-100">
             {orders.map(order => (
               <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">#{order.id.slice(-6).toUpperCase()}</td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center">
+                    {order.items[0]?.image && (
+                      <img src={order.items[0].image} alt="" className="h-10 w-10 rounded object-cover mr-3" />
+                    )}
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">#{order.id.slice(-6).toUpperCase()}</div>
+                      <div className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                </td>
                 <td className="px-6 py-4">
                   <div className="text-sm font-medium text-gray-900">{order.customerName}</div>
                   <div className="text-xs text-gray-500">{order.phone}</div>
@@ -355,13 +388,90 @@ const AdminOrders = () => {
                   </select>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-orange-600 text-sm font-bold hover:underline">View</button>
+                  <button 
+                    onClick={() => setSelectedOrder(order)}
+                    className="text-orange-600 p-2 hover:bg-orange-50 rounded-lg"
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
+            <button 
+              onClick={() => setSelectedOrder(null)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            
+            <h3 className="text-2xl font-bold mb-6">Order Details #{selectedOrder.id.slice(-6).toUpperCase()}</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div>
+                <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Customer Info</h4>
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-bold">Name:</span> {selectedOrder.customerName}</p>
+                  <p><span className="font-bold">Phone:</span> {selectedOrder.phone}</p>
+                  <p><span className="font-bold">Address:</span> {selectedOrder.shippingAddress.address}, {selectedOrder.shippingAddress.city}</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Payment Info</h4>
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-bold">Method:</span> <span className="uppercase">{selectedOrder.paymentMethod}</span></p>
+                  {selectedOrder.transactionId && (
+                    <p><span className="font-bold">Transaction ID:</span> {selectedOrder.transactionId}</p>
+                  )}
+                  {selectedOrder.paymentScreenshot && (
+                    <p>
+                      <span className="font-bold">Screenshot:</span>{' '}
+                      <a href={selectedOrder.paymentScreenshot} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">View Screenshot</a>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {selectedOrder.orderNote && (
+              <div className="mb-8">
+                <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Order Note</h4>
+                <p className="text-sm bg-gray-50 p-4 rounded-lg italic">"{selectedOrder.orderNote}"</p>
+              </div>
+            )}
+
+            <div className="mb-8">
+              <h4 className="text-sm font-bold text-gray-500 uppercase mb-3">Items</h4>
+              <div className="space-y-4">
+                {selectedOrder.items.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <div className="flex items-center">
+                      <img src={item.image} alt="" className="h-12 w-12 rounded object-cover mr-4" />
+                      <div>
+                        <p className="font-bold text-sm">{item.name}</p>
+                        <p className="text-xs text-gray-500">Qty: {item.quantity} {item.selectedSize && `• Size: ${item.selectedSize}`}</p>
+                      </div>
+                    </div>
+                    <p className="font-bold">৳{item.price * item.quantity}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-6 border-t border-gray-100">
+              <span className="text-lg font-bold">Total Amount</span>
+              <span className="text-2xl font-bold text-orange-600">৳{selectedOrder.totalAmount}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

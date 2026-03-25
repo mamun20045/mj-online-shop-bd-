@@ -20,7 +20,13 @@ const Login: React.FC = () => {
       toast.success('Logged in successfully!');
       navigate('/');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to login');
+      if (error.code === 'auth/operation-not-allowed') {
+        toast.error('Email/Password login is not enabled. Please use Google Login or contact the administrator.');
+      } else if (error.code === 'auth/invalid-credential') {
+        toast.error('Invalid email or password. Please check your credentials and try again.');
+      } else {
+        toast.error(error.message || 'Failed to login');
+      }
     } finally {
       setLoading(false);
     }

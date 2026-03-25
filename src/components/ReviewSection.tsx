@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Review, Order } from '../types';
 import { Star, MessageSquare, Send, User } from 'lucide-react';
@@ -23,11 +23,13 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ productId }) => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const q = query(collection(db, 'reviews'), where('productId', '==', productId), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'reviews'), where('productId', '==', productId));
         const snapshot = await getDocs(q);
-        setReviews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review)));
+        const fetchedReviews = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+        // Sort client-side to avoid index requirement
+        setReviews(fetchedReviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } catch (error) {
-        console.error('Error fetching reviews:', error);
+        handleFirestoreError(error, OperationType.LIST, 'reviews');
       } finally {
         setLoading(false);
       }
@@ -44,7 +46,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({ productId }) => {
         );
         setHasPurchased(purchased);
       } catch (error) {
-        console.error('Error checking purchase:', error);
+        handleFirestoreError(error, OperationType.LIST, 'orders_check_purchase');
       }
     };
 

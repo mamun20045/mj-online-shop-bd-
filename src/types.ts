@@ -39,7 +39,10 @@ export interface Order {
   items: CartItem[];
   totalAmount: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  paymentMethod: 'bkash' | 'nagad' | 'cod';
+  paymentMethod: 'bkash' | 'nagad' | 'rocket' | 'cod';
+  transactionId?: string;
+  paymentScreenshot?: string;
+  orderNote?: string;
   shippingAddress: {
     fullName: string;
     address: string;

@@ -20,6 +20,8 @@ const ProductDetails: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [activeImage, setActiveImage] = useState(0);
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
@@ -66,9 +68,22 @@ const ProductDetails: React.FC = () => {
     toast.success(`${product.name} added to cart!`);
   };
 
+  const handleBuyNow = () => {
+    if (!product) return;
+    addToCart(product, quantity, selectedSize, selectedColor);
+    navigate('/checkout');
+  };
+
   const averageRating = reviews.length > 0
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
     : 0;
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomPos({ x, y });
+  };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center">Product not found.</div>;
@@ -78,13 +93,23 @@ const ProductDetails: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Image Gallery */}
         <div className="space-y-4">
-          <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 border border-gray-100">
-            <img
+          <div 
+            className="aspect-square rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative cursor-zoom-in"
+            onMouseMove={handleMouseMove}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
+            <motion.img
               src={product.images[activeImage] || 'https://picsum.photos/seed/product/800/800'}
               alt={product.name}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
               loading="lazy"
+              animate={{
+                scale: isHovering ? 2 : 1,
+                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
+              }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             />
           </div>
           <div className="grid grid-cols-4 gap-4">
@@ -196,16 +221,25 @@ const ProductDetails: React.FC = () => {
             <button
               onClick={handleAddToCart}
               disabled={product.stock <= 0}
-              className="flex-grow bg-orange-600 text-white py-4 rounded-xl font-bold hover:bg-orange-700 transition-colors flex items-center justify-center disabled:bg-gray-300"
+              className="flex-grow bg-white text-orange-600 border-2 border-orange-600 py-4 rounded-xl font-bold hover:bg-orange-50 transition-colors flex items-center justify-center disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
             >
               <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
             </button>
-            <button className="p-4 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">
-              <Heart className="h-6 w-6 text-gray-400" />
+            <button
+              onClick={handleBuyNow}
+              disabled={product.stock <= 0}
+              className="flex-grow bg-orange-600 text-white py-4 rounded-xl font-bold hover:bg-orange-700 transition-colors flex items-center justify-center disabled:bg-gray-300"
+            >
+              Buy Now
             </button>
-            <button className="p-4 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">
-              <Share2 className="h-6 w-6 text-gray-400" />
-            </button>
+            <div className="flex gap-2">
+              <button className="p-4 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">
+                <Heart className="h-6 w-6 text-gray-400" />
+              </button>
+              <button className="p-4 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">
+                <Share2 className="h-6 w-6 text-gray-400" />
+              </button>
+            </div>
           </div>
 
           {/* Features */}

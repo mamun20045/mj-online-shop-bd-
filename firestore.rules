@@ -36,7 +36,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
          (request.auth.token.email == "chinaonlinebdpurchase2@gmail.com" && request.auth.token.email_verified == true));
     }
 
@@ -68,7 +68,8 @@ service cloud.firestore {
     // Rules
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == 'user' || (request.auth.token.email == "chinaonlinebdpurchase2@gmail.com" && request.resource.data.role == 'admin'));
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role && isValidUser(request.resource.data)) || isAdmin();
     }
 

@@ -18,7 +18,10 @@ const Checkout: React.FC = () => {
     phone: '',
     address: '',
     city: 'Dhaka',
-    paymentMethod: 'cod' as 'bkash' | 'nagad' | 'cod',
+    paymentMethod: 'cod' as 'bkash' | 'nagad' | 'rocket' | 'cod',
+    transactionId: '',
+    paymentScreenshot: '',
+    orderNote: '',
   });
 
   const [deliveryCharge, setDeliveryCharge] = useState(60);
@@ -39,16 +42,41 @@ const Checkout: React.FC = () => {
     e.preventDefault();
     if (!user) return;
 
+    if (formData.paymentMethod !== 'cod') {
+      if (!formData.transactionId.trim()) {
+        toast.error('Transaction ID is required for mobile payment');
+        return;
+      }
+      if (!formData.paymentScreenshot.trim()) {
+        toast.error('Payment Screenshot URL is required for mobile payment');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
+      // Sanitize cart items to remove undefined values
+      const sanitizedItems = cart.map(item => {
+        const itemCopy = { ...item };
+        Object.keys(itemCopy).forEach(key => {
+          if ((itemCopy as any)[key] === undefined) {
+            delete (itemCopy as any)[key];
+          }
+        });
+        return itemCopy;
+      });
+
       const orderData = {
         userId: user.id,
         customerName: formData.fullName,
         phone: formData.phone,
-        items: cart,
+        items: sanitizedItems,
         totalAmount: cartTotal + deliveryCharge,
         status: 'pending',
         paymentMethod: formData.paymentMethod,
+        transactionId: formData.paymentMethod !== 'cod' ? formData.transactionId : undefined,
+        paymentScreenshot: formData.paymentMethod !== 'cod' ? formData.paymentScreenshot : undefined,
+        orderNote: formData.orderNote || undefined,
         shippingAddress: {
           fullName: formData.fullName,
           address: formData.address,
@@ -153,11 +181,12 @@ const Checkout: React.FC = () => {
               <CreditCard className="mr-2 h-6 w-6 text-orange-600" /> Payment Method
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               {[
                 { id: 'cod', name: 'Cash on Delivery', icon: Truck },
                 { id: 'bkash', name: 'bKash', icon: CheckCircle2 },
                 { id: 'nagad', name: 'Nagad', icon: CheckCircle2 },
+                { id: 'rocket', name: 'Rocket', icon: CheckCircle2 },
               ].map((method) => (
                 <label
                   key={method.id}
@@ -181,11 +210,48 @@ const Checkout: React.FC = () => {
             </div>
 
             {formData.paymentMethod !== 'cod' && (
-              <div className="mt-6 p-4 bg-blue-50 text-blue-700 rounded-lg text-sm">
-                <p className="font-bold mb-1">Payment Instructions:</p>
-                <p>Please complete the payment to our merchant number after placing the order. Our support team will call you for verification.</p>
+              <div className="mt-6 space-y-4">
+                <div className="p-4 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                  <p className="font-bold mb-1">Payment Instructions:</p>
+                  <p>Please complete the payment to our merchant number (01XXXXXXXXX) after placing the order. Then provide the Transaction ID and Screenshot URL below.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.transactionId}
+                      onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                      placeholder="Enter Transaction ID"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Screenshot URL</label>
+                    <input
+                      type="url"
+                      required
+                      value={formData.paymentScreenshot}
+                      onChange={(e) => setFormData({ ...formData, paymentScreenshot: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                      placeholder="Paste screenshot link (e.g., Imgur)"
+                    />
+                  </div>
+                </div>
               </div>
             )}
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Order Note (Optional)</label>
+              <textarea
+                rows={2}
+                value={formData.orderNote}
+                onChange={(e) => setFormData({ ...formData, orderNote: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                placeholder="Any special instructions for your order?"
+              />
+            </div>
           </section>
         </div>
 

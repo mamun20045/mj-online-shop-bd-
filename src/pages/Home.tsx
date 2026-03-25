@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { seedDatabase } from '../seedData';
 import { Product, Category } from '../types';
 import ProductCard from '../components/ProductCard';
 import { ArrowRight, Truck, ShieldCheck, Clock, CreditCard } from 'lucide-react';
@@ -20,7 +21,21 @@ const Home: React.FC = () => {
         setFeaturedProducts(productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
 
         const categoriesSnapshot = await getDocs(collection(db, 'categories'));
-        setCategories(categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
+        const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+        setCategories(fetchedCategories);
+
+        // Auto-seed if database is empty
+        if (productsSnapshot.empty && categoriesSnapshot.empty) {
+          console.log('Database empty, seeding demo data...');
+          await seedDatabase();
+          // Re-fetch after seeding
+          const pQuery = query(collection(db, 'products'), where('isFeatured', '==', true), limit(8));
+          const pSnap = await getDocs(pQuery);
+          setFeaturedProducts(pSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+          
+          const cSnap = await getDocs(collection(db, 'categories'));
+          setCategories(cSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
+        }
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {

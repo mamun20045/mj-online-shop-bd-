@@ -34,7 +34,13 @@ const Signup: React.FC = () => {
       toast.success('Account created successfully!');
       navigate('/');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
+      if (error.code === 'auth/operation-not-allowed') {
+        toast.error('Email/Password signup is not enabled. Please use Google Login or contact the administrator.');
+      } else if (error.code === 'auth/invalid-credential') {
+        toast.error('Invalid credentials provided. Please check your email and password.');
+      } else {
+        toast.error(error.message || 'Failed to create account');
+      }
     } finally {
       setLoading(false);
     }

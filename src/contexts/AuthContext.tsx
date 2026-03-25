@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -19,19 +19,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
-        } else {
-          // Create new user profile if it doesn't exist
-          const newUser: User = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || 'User',
-            email: firebaseUser.email || '',
-            role: firebaseUser.email === 'chinaonlinebdpurchase2@gmail.com' ? 'admin' : 'user',
-          };
-          await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-          setUser(newUser);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
+          } else {
+            // Create new user profile if it doesn't exist
+            const newUser: User = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || 'User',
+              email: firebaseUser.email || '',
+              role: firebaseUser.email === 'chinaonlinebdpurchase2@gmail.com' ? 'admin' : 'user',
+            };
+            await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+            setUser(newUser);
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
         }
       } else {
         setUser(null);

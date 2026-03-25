@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../contexts/CartContext';
@@ -12,12 +12,20 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart(product, 1);
     toast.success(`${product.name} added to cart!`);
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(product, 1);
+    navigate('/checkout');
   };
 
   return (
@@ -55,14 +63,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <Link to={`/product/${product.id}`} className="block text-gray-900 font-semibold mb-2 hover:text-orange-600 truncate">
           {product.name}
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-lg font-bold text-orange-600">৳{product.price}</span>
+        </div>
+        <div className="flex gap-2">
           <button
             onClick={handleAddToCart}
             disabled={product.stock <= 0}
-            className="p-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="p-2 bg-white text-orange-600 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200"
+            title="Add to Cart"
           >
             <ShoppingCart className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleBuyNow}
+            disabled={product.stock <= 0}
+            className="flex-grow py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:bg-gray-300 font-bold text-sm"
+          >
+            Buy Now
           </button>
         </div>
       </div>

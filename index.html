@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Google AI Studio App</title>
+    <script>
+      (function() {
+        if (typeof window !== 'undefined') {
+          var originalFetch = window.fetch;
+          try {
+            Object.defineProperty(window, 'fetch', {
+              get: function() { return originalFetch; },
+              set: function() { console.warn('Attempted to override window.fetch. This is blocked to prevent TypeErrors.'); },
+              configurable: true
+            });
+          } catch (e) {
+            console.error('Failed to safeguard window.fetch:', e);
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -282,9 +282,63 @@ export const seedDatabase = async () => {
     }
 
     if (productsAdded > 0 || categoriesAdded > 0) {
+      // Seed Users (for stats)
+      const usersCol = collection(db, 'users');
+      const existingUsersSnapshot = await getDocs(usersCol);
+      if (existingUsersSnapshot.empty) {
+        const demoUsers = [
+          { name: 'John Doe', email: 'john@example.com', role: 'user', createdAt: new Date().toISOString() },
+          { name: 'Jane Smith', email: 'jane@example.com', role: 'user', createdAt: new Date().toISOString() },
+          { name: 'Admin User', email: 'chinaonlinebdpurchase2@gmail.com', role: 'admin', createdAt: new Date().toISOString() },
+        ];
+        for (const user of demoUsers) {
+          await addDoc(usersCol, user);
+        }
+      }
+
+      // Seed Orders (for stats)
+      const ordersCol = collection(db, 'orders');
+      const existingOrdersSnapshot = await getDocs(ordersCol);
+      if (existingOrdersSnapshot.empty) {
+        const demoOrders = [
+          {
+            userId: 'demo-user-1',
+            customerName: 'John Doe',
+            phone: '01711223344',
+            items: [
+              { id: 'prod-1', name: 'iPhone 15 Pro Max', price: 155000, quantity: 1, image: 'https://picsum.photos/seed/iphone15/600/600' }
+            ],
+            totalAmount: 155060,
+            status: 'delivered',
+            paymentMethod: 'bkash',
+            transactionId: 'TRX123456789',
+            paymentScreenshot: 'https://picsum.photos/seed/screenshot/400/600',
+            shippingAddress: { fullName: 'John Doe', address: '123 Main St', city: 'Dhaka', phone: '01711223344' },
+            createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+          },
+          {
+            userId: 'demo-user-2',
+            customerName: 'Jane Smith',
+            phone: '01811223344',
+            items: [
+              { id: 'prod-2', name: 'Nike Air Max 270', price: 12500, quantity: 2, image: 'https://picsum.photos/seed/nike/600/600' }
+            ],
+            totalAmount: 25120,
+            status: 'pending',
+            paymentMethod: 'cod',
+            orderNote: 'Please deliver after 5 PM',
+            shippingAddress: { fullName: 'Jane Smith', address: '456 Side St', city: 'Chittagong', phone: '01811223344' },
+            createdAt: new Date(Date.now() - 86400000).toISOString(),
+          }
+        ];
+        for (const order of demoOrders) {
+          await addDoc(ordersCol, order);
+        }
+      }
+
       return { 
         success: true, 
-        message: `${productsAdded} products and ${categoriesAdded} categories added successfully!` 
+        message: `${productsAdded} products, ${categoriesAdded} categories, and sample data added successfully!` 
       };
     } else {
       return { success: false, message: 'All demo items already exist in the database.' };

@@ -29,10 +29,10 @@ const Products: React.FC = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        let q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+        let q = query(collection(db, 'products'));
 
         if (categoryFilter) {
-          q = query(collection(db, 'products'), where('category', '==', categoryFilter), orderBy('createdAt', 'desc'));
+          q = query(collection(db, 'products'), where('category', '==', categoryFilter));
         }
 
         const snapshot = await getDocs(q);
