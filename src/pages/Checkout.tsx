@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { toast } from 'sonner';
 import { CreditCard, Truck, MapPin, Phone, User, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -57,6 +57,11 @@ const Checkout: React.FC = () => {
     e.preventDefault();
     if (!user) return;
 
+    if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim()) {
+      toast.error('Please fill in all required shipping information');
+      return;
+    }
+
     if (formData.paymentMethod !== 'cod') {
       if (!formData.transactionId.trim()) {
         toast.error('Transaction ID is required for mobile payment');
@@ -70,9 +75,12 @@ const Checkout: React.FC = () => {
 
     setLoading(true);
     try {
-      // Sanitize cart items to remove undefined values
+      // Sanitize cart items to remove undefined values and add single image field for admin
       const sanitizedItems = cart.map(item => {
-        const itemCopy = { ...item };
+        const itemCopy = { 
+          ...item,
+          image: item.images && item.images.length > 0 ? item.images[0] : null
+        };
         Object.keys(itemCopy).forEach(key => {
           if ((itemCopy as any)[key] === undefined) {
             delete (itemCopy as any)[key];
@@ -81,7 +89,7 @@ const Checkout: React.FC = () => {
         return itemCopy;
       });
 
-      const orderData = {
+      const orderData: any = {
         userId: user.id,
         customerName: formData.fullName,
         phone: formData.phone,
@@ -89,9 +97,9 @@ const Checkout: React.FC = () => {
         totalAmount: cartTotal + deliveryCharge,
         status: 'pending',
         paymentMethod: formData.paymentMethod,
-        transactionId: formData.paymentMethod !== 'cod' ? formData.transactionId : undefined,
-        paymentScreenshot: formData.paymentMethod !== 'cod' ? formData.paymentScreenshot : undefined,
-        orderNote: formData.orderNote || undefined,
+        transactionId: formData.paymentMethod !== 'cod' ? formData.transactionId : null,
+        paymentScreenshot: formData.paymentMethod !== 'cod' ? formData.paymentScreenshot : null,
+        orderNote: formData.orderNote || null,
         shippingAddress: {
           fullName: formData.fullName,
           address: formData.address,
@@ -101,12 +109,20 @@ const Checkout: React.FC = () => {
         createdAt: new Date().toISOString(),
       };
 
+      // Final cleanup to remove any undefined values that Firestore doesn't support
+      Object.keys(orderData).forEach(key => {
+        if (orderData[key] === undefined) {
+          delete orderData[key];
+        }
+      });
+
+      console.log('Placing order with data:', orderData);
       const docRef = await addDoc(collection(db, 'orders'), orderData);
       toast.success('Order placed successfully!');
       clearCart();
       navigate(`/order-confirmation/${docRef.id}`);
-    } catch (error: any) {
-      toast.error('Failed to place order: ' + error.message);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'orders');
     } finally {
       setLoading(false);
     }
