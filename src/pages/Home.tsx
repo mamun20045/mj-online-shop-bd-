@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { seedDatabase } from '../seedData';
-import { Product, Category } from '../types';
+import { Product, Category, Settings } from '../types';
 import ProductCard from '../components/ProductCard';
-import { ArrowRight, Truck, ShieldCheck, Clock, CreditCard } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ArrowRight, Truck, ShieldCheck, Clock, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useSettings } from '../hooks/useSettings';
 
 const Home: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const { settings } = useSettings();
+  const [currentBanner, setCurrentBanner] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,46 +49,117 @@ const Home: React.FC = () => {
     fetchData();
   }, []);
 
+  // Banner rotation
+  useEffect(() => {
+    if (settings?.banners && settings.banners.length > 1) {
+      const timer = setInterval(() => {
+        setCurrentBanner(prev => (prev + 1) % settings.banners.length);
+      }, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [settings?.banners]);
+
+  const nextBanner = () => {
+    if (settings?.banners) {
+      setCurrentBanner((currentBanner + 1) % settings.banners.length);
+    }
+  };
+
+  const prevBanner = () => {
+    if (settings?.banners) {
+      setCurrentBanner((currentBanner - 1 + settings.banners.length) % settings.banners.length);
+    }
+  };
+
   return (
     <div className="space-y-12 pb-12">
       {/* Hero Section */}
-      <section className="relative h-[500px] overflow-hidden bg-gray-900">
-        <img
-          src="https://picsum.photos/seed/ecommerce/1920/1080"
-          alt="Hero Banner"
-          className="absolute inset-0 w-full h-full object-cover opacity-60"
-          referrerPolicy="no-referrer"
-          loading="eager"
-        />
-        <div className="absolute inset-0 flex items-center justify-center text-center px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-3xl"
-          >
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Modern Shopping for <span className="text-orange-500">Bangladesh</span>
-            </h1>
-            <p className="text-lg text-gray-200 mb-8 max-w-2xl mx-auto">
-              Discover the latest trends in fashion, electronics, and more. Quality products delivered to your doorstep.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Link
-                to="/products"
-                className="w-full sm:w-auto px-8 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center"
-              >
-                Shop Now <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-              <Link
-                to="/products?category=Electronics and Gadgets"
-                className="w-full sm:w-auto px-8 py-3 bg-white text-gray-900 font-bold rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                View Gadgets
-              </Link>
+      <section className="relative h-[400px] md:h-[500px] overflow-hidden bg-gray-900">
+        <AnimatePresence mode="wait">
+          {settings?.banners && settings.banners.length > 0 ? (
+            <motion.div
+              key={currentBanner}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8 }}
+              className="absolute inset-0"
+            >
+              <img
+                src={settings.banners[currentBanner].image}
+                alt={settings.banners[currentBanner].title || 'Hero Banner'}
+                className="absolute inset-0 w-full h-full object-cover opacity-60"
+                referrerPolicy="no-referrer"
+                loading="eager"
+              />
+              <div className="absolute inset-0 flex items-center justify-center text-center px-4">
+                <div className="max-w-3xl">
+                  <motion.h1 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-4xl md:text-6xl font-bold text-white mb-6"
+                  >
+                    {settings.banners[currentBanner].title || (
+                      <>Modern Shopping for <span className="text-orange-500">Bangladesh</span></>
+                    )}
+                  </motion.h1>
+                  <motion.p 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-lg text-gray-200 mb-8 max-w-2xl mx-auto"
+                  >
+                    {settings.banners[currentBanner].subtitle || 'Discover the latest trends in fashion, electronics, and more. Quality products delivered to your doorstep.'}
+                  </motion.p>
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4"
+                  >
+                    <Link
+                      to={settings.banners[currentBanner].link || "/products"}
+                      className="w-full sm:w-auto px-8 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center"
+                    >
+                      Shop Now <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  </motion.div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="absolute inset-0 bg-gray-800 flex items-center justify-center text-white">
+              <p>Loading banners...</p>
             </div>
-          </motion.div>
-        </div>
+          )}
+        </AnimatePresence>
+
+        {settings?.banners && settings.banners.length > 1 && (
+          <>
+            <button
+              onClick={prevBanner}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors z-10"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              onClick={nextBanner}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-colors z-10"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
+              {settings.banners.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentBanner(idx)}
+                  className={`w-2 h-2 rounded-full transition-all ${currentBanner === idx ? 'bg-orange-600 w-6' : 'bg-white/50'}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* Features Section */}
@@ -150,7 +224,7 @@ const Home: React.FC = () => {
                 className="group relative h-40 rounded-xl overflow-hidden bg-gray-100"
               >
                 <img
-                  src={`https://picsum.photos/seed/${cat.slug}/400/300`}
+                  src={cat.image || `https://picsum.photos/seed/${cat.slug}/400/300`}
                   alt={cat.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80"
                   referrerPolicy="no-referrer"

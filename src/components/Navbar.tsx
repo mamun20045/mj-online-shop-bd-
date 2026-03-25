@@ -7,9 +7,12 @@ import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
 
+import { useSettings } from '../hooks/useSettings';
+
 const Navbar: React.FC = () => {
   const { user, isAdmin } = useAuth();
   const { itemCount } = useCart();
+  const { settings } = useSettings();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const navigate = useNavigate();
 
@@ -24,7 +27,7 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center">
             <Link to="/" className="text-2xl font-bold text-orange-600">
-              MJ Online Shop BD
+              {settings?.siteName || 'MJ Online Shop BD'}
             </Link>
           </div>
 

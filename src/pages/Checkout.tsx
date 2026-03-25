@@ -2,15 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { toast } from 'sonner';
-import { CreditCard, Truck, MapPin, Phone, User, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Truck, MapPin, Phone, User, CheckCircle2, Tag, Check, X } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Coupon } from '../types';
+
+import { useSettings } from '../hooks/useSettings';
 
 const Checkout: React.FC = () => {
   const { cart, selectedTotal, removeSelectedFromCart } = useCart();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
 
   const selectedItems = cart.filter(item => item.selected);
@@ -28,6 +32,10 @@ const Checkout: React.FC = () => {
 
   const [deliveryCharge, setDeliveryCharge] = useState(60);
   const [loading, setLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   useEffect(() => {
     if (selectedItems.length === 0) {
@@ -37,8 +45,15 @@ const Checkout: React.FC = () => {
 
   useEffect(() => {
     // Basic delivery charge logic
-    setDeliveryCharge(formData.city === 'Dhaka' ? 60 : 120);
-  }, [formData.city]);
+    if (settings) {
+      const charge = formData.city === 'Dhaka' 
+        ? (settings.deliveryChargeInsideDhaka || 60) 
+        : (settings.deliveryChargeOutsideDhaka || 120);
+      setDeliveryCharge(charge);
+    } else {
+      setDeliveryCharge(formData.city === 'Dhaka' ? 60 : 120);
+    }
+  }, [formData.city, settings]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,6 +68,52 @@ const Checkout: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
+    try {
+      const q = query(collection(db, 'coupons'), where('code', '==', couponCode.toUpperCase()));
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        toast.error('Invalid coupon code');
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      } else {
+        const couponData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Coupon;
+        const now = new Date();
+        const expiry = new Date(couponData.expiryDate);
+        
+        if (now > expiry) {
+          toast.error('Coupon has expired');
+          setAppliedCoupon(null);
+          setCouponDiscount(0);
+        } else {
+          setAppliedCoupon(couponData);
+          let discount = 0;
+          if (couponData.discountType === 'percentage') {
+            discount = (selectedTotal * couponData.discountValue) / 100;
+          } else {
+            discount = couponData.discountValue;
+          }
+          setCouponDiscount(discount);
+          toast.success('Coupon applied successfully!');
+        }
+      }
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      toast.error('Failed to apply coupon');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponCode('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,7 +157,9 @@ const Checkout: React.FC = () => {
         customerName: formData.fullName,
         phone: formData.phone,
         items: sanitizedItems,
-        totalAmount: selectedTotal + deliveryCharge,
+        totalAmount: selectedTotal + deliveryCharge - couponDiscount,
+        couponCode: appliedCoupon?.code || null,
+        discountAmount: couponDiscount,
         status: 'pending',
         paymentMethod: formData.paymentMethod,
         transactionId: formData.paymentMethod !== 'cod' ? formData.transactionId : null,
@@ -299,23 +362,64 @@ const Checkout: React.FC = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="lg:col-span-1">
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Your Order</h2>
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 sticky top-24 space-y-6">
+            <h2 className="text-xl font-bold text-gray-900">Your Order</h2>
 
-            <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2">
+            <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
               {selectedItems.map((item) => (
                 <div key={`${item.id}-${item.selectedSize}`} className="flex justify-between text-sm">
                   <div className="flex-grow pr-4">
                     <p className="font-medium text-gray-900 truncate">{item.name}</p>
                     <p className="text-gray-500">Qty: {item.quantity} {item.selectedSize && `• Size: ${item.selectedSize}`}</p>
                   </div>
-                  <span className="font-bold text-gray-900">৳{item.price * item.quantity}</span>
+                  <span className="font-bold text-gray-900">৳{(item.discountPrice || item.price) * item.quantity}</span>
                 </div>
               ))}
             </div>
 
-            <div className="space-y-4 border-t border-gray-100 pt-6 mb-8">
+            {/* Coupon Section */}
+            <div className="pt-6 border-t border-gray-100">
+              <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center">
+                <Tag className="h-4 w-4 mr-2 text-orange-600" /> Have a Coupon?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter code"
+                  disabled={!!appliedCoupon}
+                  className="flex-grow px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 text-sm disabled:bg-gray-50"
+                />
+                {appliedCoupon ? (
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="px-3 py-2 bg-red-100 text-red-600 rounded-lg font-bold hover:bg-red-200 transition-colors text-sm"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={isApplyingCoupon || !couponCode}
+                    className="px-4 py-2 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:bg-gray-400 text-sm"
+                  >
+                    {isApplyingCoupon ? '...' : 'Apply'}
+                  </button>
+                )}
+              </div>
+              {appliedCoupon && (
+                <p className="mt-2 text-xs text-green-600 font-medium flex items-center">
+                  <Check className="h-3 w-3 mr-1" />
+                  Coupon "{appliedCoupon.code}" applied!
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-4 border-t border-gray-100 pt-6">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
                 <span>৳{selectedTotal}</span>
@@ -324,9 +428,15 @@ const Checkout: React.FC = () => {
                 <span>Delivery Charge</span>
                 <span>৳{deliveryCharge}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Discount</span>
+                  <span>-৳{couponDiscount}</span>
+                </div>
+              )}
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-2">
                 <span>Total</span>
-                <span>৳{selectedTotal + deliveryCharge}</span>
+                <span>৳{selectedTotal + deliveryCharge - couponDiscount}</span>
               </div>
             </div>
 

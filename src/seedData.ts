@@ -2,12 +2,12 @@ import { collection, addDoc, getDocs, query, where, deleteDoc, doc } from 'fireb
 import { db } from './firebase';
 
 const categories = [
-  { name: 'Shoes', slug: 'shoes' },
-  { name: 'Bags', slug: 'bags' },
-  { name: 'Jewelry', slug: 'jewelry' },
-  { name: 'Watches', slug: 'watches' },
-  { name: 'Electronics and Gadgets', slug: 'electronics-gadgets' },
-  { name: 'Home and Kitchen', slug: 'home-kitchen' },
+  { name: 'Shoes', slug: 'shoes', image: 'https://picsum.photos/seed/shoes/400/400' },
+  { name: 'Bags', slug: 'bags', image: 'https://picsum.photos/seed/bags/400/400' },
+  { name: 'Jewelry', slug: 'jewelry', image: 'https://picsum.photos/seed/jewelry/400/400' },
+  { name: 'Watches', slug: 'watches', image: 'https://picsum.photos/seed/watches/400/400' },
+  { name: 'Electronics and Gadgets', slug: 'electronics-gadgets', image: 'https://picsum.photos/seed/electronics/400/400' },
+  { name: 'Home and Kitchen', slug: 'home-kitchen', image: 'https://picsum.photos/seed/kitchen/400/400' },
 ];
 
 const products = [
@@ -16,7 +16,12 @@ const products = [
     description: 'Iconic sneakers with a large Air unit for ultimate comfort and style.',
     price: 12500,
     category: 'Shoes',
-    images: ['https://picsum.photos/seed/nike/600/600'],
+    images: [
+      'https://picsum.photos/seed/nike/600/600',
+      'https://picsum.photos/seed/nike2/600/600',
+      'https://picsum.photos/seed/nike3/600/600'
+    ],
+    video: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     stock: 20,
     isFeatured: true,
     createdAt: new Date().toISOString(),
@@ -26,7 +31,10 @@ const products = [
     description: 'Elegant and spacious leather handbag for daily use and special occasions.',
     price: 5500,
     category: 'Bags',
-    images: ['https://picsum.photos/seed/handbag/600/600'],
+    images: [
+      'https://picsum.photos/seed/handbag/600/600',
+      'https://picsum.photos/seed/handbag2/600/600'
+    ],
     stock: 12,
     isFeatured: true,
     createdAt: new Date().toISOString(),

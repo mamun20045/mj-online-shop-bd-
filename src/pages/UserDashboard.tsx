@@ -138,18 +138,18 @@ const UserDashboard: React.FC = () => {
       {/* Order Details Modal */}
       <AnimatePresence>
         {selectedOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-auto overflow-hidden flex flex-col relative"
             >
               {/* Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50/50">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50/50 sticky top-0 z-10 backdrop-blur-md">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Order Details</h3>
-                  <p className="text-sm text-gray-500 font-mono">#{selectedOrder.id.toUpperCase()}</p>
+                  <p className="text-sm text-gray-500 font-mono">#{selectedOrder.id?.toUpperCase() || 'N/A'}</p>
                 </div>
                 <button 
                   onClick={() => setSelectedOrder(null)}
@@ -160,7 +160,7 @@ const UserDashboard: React.FC = () => {
               </div>
 
               {/* Modal Content */}
-              <div className="flex-grow overflow-y-auto p-6 space-y-8">
+              <div className="p-6 space-y-8">
                 {/* Status & Date */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center text-gray-600">
@@ -235,7 +235,7 @@ const UserDashboard: React.FC = () => {
                   <div className="border border-gray-100 rounded-xl divide-y divide-gray-100">
                     {selectedOrder.items.map((item, idx) => (
                       <div key={idx} className="p-4 flex items-center gap-4">
-                        <img src={item.images[0]} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-gray-50" referrerPolicy="no-referrer" />
+                        <img src={item.images?.[0] || 'https://picsum.photos/seed/product/200/200'} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-gray-50" referrerPolicy="no-referrer" />
                         <div className="flex-grow min-w-0">
                           <p className="font-bold text-gray-900 truncate">{item.name}</p>
                           <div className="flex gap-3 mt-1 text-xs text-gray-500">
@@ -265,7 +265,7 @@ const UserDashboard: React.FC = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between sticky bottom-0 z-10">
                 <div className="flex items-center text-gray-500 text-sm">
                   <Truck className="h-4 w-4 mr-2" /> Free Delivery
                 </div>

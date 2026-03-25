@@ -75,10 +75,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart(prevCart => prevCart.filter(item => !item.selected));
   };
 
-  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cartTotal = cart.reduce((total, item) => {
+    const price = item.discountPrice || item.price;
+    return total + price * item.quantity;
+  }, 0);
   const itemCount = cart.reduce((count, item) => count + item.quantity, 0);
   
-  const selectedTotal = cart.reduce((total, item) => item.selected ? total + item.price * item.quantity : total, 0);
+  const selectedTotal = cart.reduce((total, item) => {
+    if (!item.selected) return total;
+    const price = item.discountPrice || item.price;
+    return total + price * item.quantity;
+  }, 0);
   const selectedCount = cart.reduce((count, item) => item.selected ? count + item.quantity : count, 0);
 
   return (

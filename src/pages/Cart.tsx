@@ -28,7 +28,29 @@ const Cart: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-10">Shopping Cart</h1>
+      <div className="flex items-center justify-between mb-10">
+        <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
+        {cart.length > 0 && (
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="select-all"
+              checked={cart.every(item => item.selected)}
+              onChange={(e) => {
+                cart.forEach(item => {
+                  if (item.selected !== e.target.checked) {
+                    toggleSelection(item.id, item.selectedSize, item.selectedColor);
+                  }
+                });
+              }}
+              className="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+            />
+            <label htmlFor="select-all" className="text-sm font-bold text-gray-600 cursor-pointer select-none">
+              Select All ({cart.length})
+            </label>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         {/* Cart Items */}

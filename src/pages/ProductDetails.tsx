@@ -6,7 +6,7 @@ import { Product, Review } from '../types';
 import { useCart } from '../contexts/CartContext';
 import ProductCard from '../components/ProductCard';
 import ReviewSection from '../components/ReviewSection';
-import { ShoppingCart, Heart, Share2, Star, Minus, Plus, Truck, ShieldCheck, RefreshCcw } from 'lucide-react';
+import { ShoppingCart, Heart, Share2, Star, Minus, Plus, Truck, ShieldCheck, RefreshCcw, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 
@@ -20,6 +20,7 @@ const ProductDetails: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [activeImage, setActiveImage] = useState(0);
+  const [viewMode, setViewMode] = useState<'image' | 'video'>('image');
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const { addToCart } = useCart();
@@ -85,6 +86,17 @@ const ProductDetails: React.FC = () => {
     setZoomPos({ x, y });
   };
 
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return '';
+    let videoId = '';
+    if (url.includes('v=')) {
+      videoId = url.split('v=')[1].split('&')[0];
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1].split('?')[0];
+    }
+    return `https://www.youtube.com/embed/${videoId}`;
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center">Product not found.</div>;
 
@@ -94,36 +106,71 @@ const ProductDetails: React.FC = () => {
         {/* Image Gallery */}
         <div className="space-y-4">
           <div 
-            className="aspect-square rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative cursor-zoom-in"
-            onMouseMove={handleMouseMove}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
+            className="aspect-square rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 relative"
           >
-            <motion.img
-              src={product.images[activeImage] || 'https://picsum.photos/seed/product/800/800'}
-              alt={product.name}
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-              loading="lazy"
-              animate={{
-                scale: isHovering ? 2 : 1,
-                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
-              }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            />
+            {viewMode === 'image' ? (
+              <div
+                className="w-full h-full cursor-zoom-in"
+                onMouseMove={handleMouseMove}
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+              >
+                <motion.img
+                  src={product.images[activeImage] || 'https://picsum.photos/seed/product/800/800'}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                  animate={{
+                    scale: isHovering ? 2 : 1,
+                    transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
+                  }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                />
+              </div>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-black">
+                {product.video?.includes('youtube.com') || product.video?.includes('youtu.be') ? (
+                  <iframe
+                    className="w-full h-full"
+                    src={getYouTubeEmbedUrl(product.video)}
+                    title="Product Video"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <video
+                    src={product.video}
+                    controls
+                    className="w-full h-full object-contain"
+                  />
+                )}
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-4">
             {product.images.map((img, idx) => (
               <button
                 key={idx}
-                onClick={() => setActiveImage(idx)}
+                onClick={() => { setActiveImage(idx); setViewMode('image'); }}
                 className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                  activeImage === idx ? 'border-orange-600' : 'border-transparent hover:border-gray-300'
+                  activeImage === idx && viewMode === 'image' ? 'border-orange-600' : 'border-transparent hover:border-gray-300'
                 }`}
               >
                 <img src={img} alt={`${product.name} ${idx}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
               </button>
             ))}
+            {product.video && (
+              <button
+                onClick={() => setViewMode('video')}
+                className={`aspect-square rounded-lg overflow-hidden border-2 transition-all flex items-center justify-center bg-gray-100 ${
+                  viewMode === 'video' ? 'border-orange-600' : 'border-transparent hover:border-gray-300'
+                }`}
+              >
+                <Play className="h-6 w-6 text-orange-600" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -142,7 +189,17 @@ const ProductDetails: React.FC = () => {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{product.name}</h1>
             <div className="flex items-center space-x-4">
-              <span className="text-3xl font-bold text-orange-600">৳{product.price}</span>
+              {product.discountPrice ? (
+                <>
+                  <span className="text-3xl font-bold text-orange-600">৳{product.discountPrice}</span>
+                  <span className="text-xl text-gray-400 line-through">৳{product.price}</span>
+                  <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
+                    Save ৳{product.price - product.discountPrice}
+                  </span>
+                </>
+              ) : (
+                <span className="text-3xl font-bold text-orange-600">৳{product.price}</span>
+              )}
               {product.stock > 0 ? (
                 <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">In Stock</span>
               ) : (

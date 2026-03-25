@@ -12,8 +12,10 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  discountPrice?: number;
   category: string;
   images: string[];
+  video?: string;
   sizes?: string[];
   colors?: string[];
   stock: number;
@@ -25,6 +27,7 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
+  image?: string;
 }
 
 export interface CartItem extends Product {
@@ -37,8 +40,12 @@ export interface CartItem extends Product {
 export interface Order {
   id: string;
   userId: string;
+  customerName: string;
+  phone: string;
   items: CartItem[];
   totalAmount: number;
+  couponCode?: string;
+  discountAmount?: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentMethod: 'bkash' | 'nagad' | 'rocket' | 'cod';
   transactionId?: string;
@@ -50,8 +57,6 @@ export interface Order {
     city: string;
     phone: string;
   };
-  phone: string;
-  customerName: string;
   createdAt: string;
 }
 
@@ -63,9 +68,25 @@ export interface Coupon {
   expiryDate: string;
 }
 
+export interface Banner {
+  id: string;
+  image: string;
+  title?: string;
+  subtitle?: string;
+  link?: string;
+}
+
 export interface Settings {
   deliveryChargeInsideDhaka: number;
   deliveryChargeOutsideDhaka: number;
+  banners: Banner[];
+  siteName: string;
+  contactPhone: string;
+  contactEmail: string;
+  address: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
 }
 
 export interface Review {

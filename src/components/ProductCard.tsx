@@ -41,6 +41,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           referrerPolicy="no-referrer"
           loading="lazy"
         />
+        {product.discountPrice && (
+          <div className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow-lg">
+            -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}% OFF
+          </div>
+        )}
         {product.stock <= 0 && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <span className="text-white font-bold px-3 py-1 border-2 border-white rounded">OUT OF STOCK</span>
@@ -63,8 +68,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <Link to={`/product/${product.id}`} className="block text-gray-900 font-semibold mb-2 hover:text-orange-600 truncate">
           {product.name}
         </Link>
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-lg font-bold text-orange-600">৳{product.price}</span>
+        <div className="flex items-center gap-2 mb-3">
+          {product.discountPrice ? (
+            <>
+              <span className="text-lg font-bold text-orange-600">৳{product.discountPrice}</span>
+              <span className="text-sm text-gray-400 line-through">৳{product.price}</span>
+            </>
+          ) : (
+            <span className="text-lg font-bold text-orange-600">৳{product.price}</span>
+          )}
         </div>
         <div className="flex gap-2">
           <button
