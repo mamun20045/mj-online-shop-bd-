@@ -5,6 +5,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Product, Order, Category, Coupon, Settings } from '../types';
 import { LayoutDashboard, Package, ShoppingBag, Tag, Settings as SettingsIcon, Plus, Edit, Trash2, Check, X, Search, User, Eye, Upload, Video } from 'lucide-react';
 import { toast } from 'sonner';
+import { resizeImage } from '../lib/imageUtils';
 
 const FileUploader: React.FC<{
   onUpload: (value: string) => void;
@@ -21,22 +22,37 @@ const FileUploader: React.FC<{
     setUrlInput(currentValue || '');
   }, [currentValue]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) {
-        toast.error('File is too large. Please upload a file smaller than 1MB.');
-        return;
-      }
       setLoading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        onUpload(base64);
-        setUrlInput(base64);
+      try {
+        if (file.type.startsWith('image/')) {
+          const base64 = await resizeImage(file);
+          onUpload(base64);
+          setUrlInput(base64);
+        } else {
+          // For non-images (videos), we still check size because Firestore has a 1MB doc limit
+          if (file.size > 1024 * 1024) {
+            toast.error('Video file is too large. Please use a URL for videos larger than 1MB.');
+            setLoading(false);
+            return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = reader.result as string;
+            onUpload(base64);
+            setUrlInput(base64);
+            setLoading(false);
+          };
+          reader.readAsDataURL(file);
+          return; // Exit here as reader is async
+        }
+      } catch (error) {
+        toast.error('Error processing file');
+      } finally {
         setLoading(false);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -414,18 +430,15 @@ const AdminProducts = () => {
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={e => {
+                          onChange={async e => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              if (file.size > 1024 * 1024) {
-                                toast.error('File too large (max 1MB)');
-                                return;
+                              try {
+                                const base64 = await resizeImage(file);
+                                setFormData({ ...formData, images: [...formData.images, base64] });
+                              } catch (error) {
+                                toast.error('Error processing image');
                               }
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setFormData({ ...formData, images: [...formData.images, reader.result as string] });
-                              };
-                              reader.readAsDataURL(file);
                             }
                           }}
                         />

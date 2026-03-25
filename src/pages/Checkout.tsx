@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { CreditCard, Truck, MapPin, Phone, User, CheckCircle2, Tag, Check, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Coupon } from '../types';
+import { resizeImage } from '../lib/imageUtils';
 
 import { useSettings } from '../hooks/useSettings';
 
@@ -55,18 +56,15 @@ const Checkout: React.FC = () => {
     }
   }, [formData.city, settings]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for Base64 storage
-        toast.error('File is too large. Please upload an image smaller than 1MB.');
-        return;
+      try {
+        const base64 = await resizeImage(file);
+        setFormData({ ...formData, paymentScreenshot: base64 });
+      } catch (error) {
+        toast.error('Error processing image');
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, paymentScreenshot: reader.result as string });
-      };
-      reader.readAsDataURL(file);
     }
   };
 
